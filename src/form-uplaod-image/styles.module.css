@@ -1,0 +1,18 @@
+.form {
+  padding: 40px;
+  max-width: 300px;
+  border: 1px solid #999;
+  border-radius: 3px;
+  margin: 20px auto;
+}
+.inputWidth100{
+  width: 100%;
+}
+.labelTitle {
+  color: #1976d2;
+  font-family: Arial;
+  padding: 10px 0;
+}
+.marginTopDown10 {
+  margin: 10px 0;
+}
