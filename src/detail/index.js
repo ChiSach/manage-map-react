@@ -109,7 +109,7 @@ export default function DetailMap(props) {
             try {
                 axios({
                     method: 'GET',
-                    url: process.env.REACT_APP_URL_API + '/list-area'
+                    url: process.env.REACT_APP_URL_API + '/list-area/' + id
                 }).then(response => {
                     if (response.data.success === "Successfully") {
                         console.log(response.data.listArea)
@@ -131,6 +131,9 @@ export default function DetailMap(props) {
     }, []);
 
     const onAddMap = () => {
+        if(isAdd){
+            setPolygonPoint('');
+        }
         setAdd(!isAdd)
     }
 

@@ -7,19 +7,25 @@ import {
   Link
 } from "react-router-dom";
 import DetailMap from './detail'
+import { useEffect } from 'react';
 
 function App() {
+
+  useEffect(() => {
+    document.title = "Manage Map"
+ }, []);
+
   return (
     <div className="App">
       <Router>
         <div>
-          <nav>
+          {/* <nav>
             <ul>
               <li>
                 <Link to="/">Home</Link>
               </li>
             </ul>
-          </nav>
+          </nav> */}
 
           {/* A <Switch> looks through its children <Route>s and
             renders the first one that matches the current URL. */}
