@@ -167,9 +167,6 @@ export default function DetailAreaDialogs(props) {
                         <Button onClick={handleClose} color="primary">
                             {'Đóng'}
                         </Button>
-                        <Button onClick={() => reset()} color="primary">
-                            {'Reset'}
-                        </Button>
                         <Button onClick={onSubmit} color="primary">
                             {'Lưu'}
                         </Button>

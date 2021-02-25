@@ -59,6 +59,12 @@ const useStyles = makeStyles({
         lineHeight: 1,
         borderRadius: 4,
         cursor: 'pointer'
+    },
+    itemAreaAtc: {
+        webkitBoxShadow: '0px 2px 5px 1px rgba(187,187,187,0.4)',
+        mozBoxShadow: '0px 2px 5px 1px rgba(187,187,187,0.4)',
+        boxShadow: '0px 2px 5px 1px rgba(187,187,187,0.4)',
+        backgroundColor: 'rgb(153 153 153 / 43%)'
     }
 
 });
@@ -82,7 +88,8 @@ export default function DetailMap(props) {
     const [dataDetail, setDataDetail] = useState({});
     const [polygonPoint, setPolygonPoint] = useState('');
     const [isOpenSuccess, setOpenSuccess] = useState(false);
-    const [svg, setSVG] = useState('');
+    const [areaAct, setAreaAct] = useState(-1);
+    const [indexArea, setIndexArea] = useState(-1);
     const imageRef = useRef();
 
     useEffect(() => {
@@ -130,8 +137,15 @@ export default function DetailMap(props) {
         }, 1000);
     }, []);
 
+    useEffect(() => {
+        if (!isOpenPopup && indexArea > -1) {
+            document.getElementById("area-scroll-" + indexArea).style.fill = `rgb(${indexArea + 51} ${indexArea + 151} 219 / 57%)`
+            setAreaAct(-1)
+        }
+    }, [isOpenPopup])
+
     const onAddMap = () => {
-        if(isAdd){
+        if (isAdd) {
             setPolygonPoint('');
         }
         setAdd(!isAdd)
@@ -165,10 +179,12 @@ export default function DetailMap(props) {
             behavior: "smooth"
         });
         elmnt.style.fill = '#DA4567'
+        setAreaAct(i)
     }
 
     const showDetailArea = (i) => {
         scrollIntoView(i)
+        setIndexArea(i)
         setDataDetail(listArea[i]);
         setOpenPopup(true);
     }
@@ -206,12 +222,13 @@ export default function DetailMap(props) {
         return <MuiAlert elevation={6} variant="filled" {...props} />;
     }
 
+    // Render HTML
     return dataMap.length ? (
         <div className={classes.root}>
             <Snackbar
                 anchorOrigin={{
-                    vertical: 'top',
-                    horizontal: 'right'
+                    vertical: 'left',
+                    horizontal: 'bottom'
                 }}
                 open={isOpenSuccess}
                 autoHideDuration={2000}
@@ -223,6 +240,7 @@ export default function DetailMap(props) {
             {
                 isOpenPopup ? <DetailAreaDialogs setOpenPopup={setOpenPopup} isOpenPopup={isOpenPopup}
                     dataDetail={dataDetail} setListArea={setListArea} setOpenSuccess={setOpenSuccess}
+                    setAreaAct={setAreaAct}
                 /> : ''
             }
             {
@@ -232,7 +250,7 @@ export default function DetailMap(props) {
                             listArea.map((item, i) => {
                                 return (
                                     <div>
-                                        <p onClick={() => scrollIntoView(i)} className={classes.itemArea}>{item.title}</p>
+                                        <p onClick={() => scrollIntoView(i)} className={`${classes.itemArea} ${areaAct === i ? classes.itemAreaAtc : ''}`}>{item.title}</p>
                                     </div>
                                 )
                             })
