@@ -90,6 +90,7 @@ export default function DetailMap(props) {
     const [isOpenSuccess, setOpenSuccess] = useState(false);
     const [areaAct, setAreaAct] = useState(-1);
     const [indexArea, setIndexArea] = useState(-1);
+    const [isRemoveArea, setRemoveArea] = useState(false);
     const imageRef = useRef();
 
     useEffect(() => {
@@ -142,8 +143,15 @@ export default function DetailMap(props) {
             document.getElementById("area-scroll-" + indexArea).style.fill = `rgb(${indexArea + 51} ${indexArea + 151} 219 / 57%)`
             setAreaAct(-1)
         }
+        if (isRemoveArea && indexArea > -1) {
+            setOpenSuccess(true)
+            setAreaAct(-1)
+            setTimeout(() => {
+                setRemoveArea(false)
+            }, 1000);
+        }
     }, [isOpenPopup])
-
+    
     const onAddMap = () => {
         if (isAdd) {
             setPolygonPoint('');
@@ -227,11 +235,12 @@ export default function DetailMap(props) {
         <div className={classes.root}>
             <Snackbar
                 anchorOrigin={{
-                    vertical: 'left',
-                    horizontal: 'bottom'
+                    vertical: 'top',
+                    horizontal: 'center'
                 }}
                 open={isOpenSuccess}
                 autoHideDuration={2000}
+                onClose={() => handleCloseAlert()}
             >
                 <Alert onClose={handleCloseAlert} severity="success">
                     {'Success!'}
@@ -240,7 +249,7 @@ export default function DetailMap(props) {
             {
                 isOpenPopup ? <DetailAreaDialogs setOpenPopup={setOpenPopup} isOpenPopup={isOpenPopup}
                     dataDetail={dataDetail} setListArea={setListArea} setOpenSuccess={setOpenSuccess}
-                    setAreaAct={setAreaAct}
+                    setAreaAct={setAreaAct} setRemoveArea={setRemoveArea}
                 /> : ''
             }
             {

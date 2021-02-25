@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { withStyles } from '@material-ui/core/styles';
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
@@ -62,6 +62,7 @@ export default function DetailAreaDialogs(props) {
     const classes = useStyles();
     const [open, setOpen] = React.useState(props.isOpenPopup || false);
     const [dataDetail, setDataDetail] = React.useState(props.dataDetail || {});
+    const [isOpenAlert, setOpenAlert] = useState(false)
     const { register, handleSubmit, reset, setValue, getValues } = useForm({
         defaultValues: {
             map_id: props.dataDetail?.map_id || 0,
@@ -102,9 +103,35 @@ export default function DetailAreaDialogs(props) {
         }
     }
 
+    const openAlert = () => {
+        setOpenAlert(true)
+    }
+
+    const handleCancelAlert = () => {
+        setOpenAlert(false)
+    }
+
+    const handleOkAlert = () => {
+        setOpenAlert(false)
+        handleClose()
+        props.setRemoveArea(true)
+    }
+
     if (Object.keys(dataDetail).length > 0 && dataDetail.constructor === Object) {
         return (
             <div>
+                <Dialog open={isOpenAlert}>
+                    <DialogTitle >Are you sure?</DialogTitle>
+                    <DialogActions>
+                        <Button onClick={handleCancelAlert} color="primary">
+                            {'Cancel'}
+                        </Button>
+                        <Button onClick={handleOkAlert} color="primary">
+                            {'Ok'}
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+
                 <Dialog onClose={handleClose} aria-labelledby="customized-dialog-title" open={open}>
                     <DialogTitle id="customized-dialog-title" onClose={handleClose}>
                         {dataDetail?.title}
@@ -165,10 +192,13 @@ export default function DetailAreaDialogs(props) {
                     </DialogContent>
                     <DialogActions>
                         <Button onClick={handleClose} color="primary">
-                            {'Đóng'}
+                            {'Close'}
+                        </Button>
+                        <Button onClick={openAlert} color="primary">
+                            {'Remove'}
                         </Button>
                         <Button onClick={onSubmit} color="primary">
-                            {'Lưu'}
+                            {'Save'}
                         </Button>
                     </DialogActions>
                 </Dialog>
