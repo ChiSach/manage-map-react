@@ -96,7 +96,7 @@ export default function DetailAreaDialogs(props) {
                 setOpen(false);
                 props.setOpenPopup(false);
                 props.setListArea(res.data.listAreas || []);
-                props.setOpenSuccess(true);
+                props.setOpenSuccess({open: true, type: 'success'});
             }
         } catch (error) {
             console.log('Error', JSON.stringify(error))

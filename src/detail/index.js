@@ -87,11 +87,13 @@ export default function DetailMap(props) {
     const [isOpenPopup, setOpenPopup] = useState(false);
     const [dataDetail, setDataDetail] = useState({});
     const [polygonPoint, setPolygonPoint] = useState('');
-    const [isOpenSuccess, setOpenSuccess] = useState(false);
     const [areaAct, setAreaAct] = useState(-1);
     const [indexArea, setIndexArea] = useState(-1);
     const [isRemoveArea, setRemoveArea] = useState(false);
     const imageRef = useRef();
+    const [isOpenSuccess, setOpenSuccess] = useState(false);
+    const [snackbarMessage, setSnackbarMessage] = useState("");
+    const [typeSnackbar, setTypeSnackbar] = useState("error");
 
     useEffect(() => {
         try {
@@ -120,7 +122,6 @@ export default function DetailMap(props) {
                     url: process.env.REACT_APP_URL_API + '/list-area/' + id
                 }).then(response => {
                     if (response.data.success === "Successfully") {
-                        console.log(response.data.listArea)
                         setListArea(response.data.listArea)
                     }
                 }).catch(function (error) {
@@ -138,20 +139,37 @@ export default function DetailMap(props) {
         }, 1000);
     }, []);
 
-    useEffect(() => {
+    useEffect(async () => {
         if (!isOpenPopup && indexArea > -1) {
             document.getElementById("area-scroll-" + indexArea).style.fill = `rgb(${indexArea + 51} ${indexArea + 151} 219 / 57%)`
             setAreaAct(-1)
         }
+
+        // remove a area
         if (isRemoveArea && indexArea > -1) {
-            setOpenSuccess(true)
+            console.log(dataDetail)
+            let fd = new FormData()
+            fd.append("id", dataDetail.id);
+            try {
+                await axios({
+                    method: 'DELETE',
+                    url: process.env.REACT_APP_URL_API + '/remove-area/' + dataDetail.id
+                }).then(response => {
+                    setDataDetail({})
+                    setOpenSuccess(true)
+                    console.log(response)
+                }).catch(function (error) {
+                    console.log('Error ' + (Object.assign({}, error).response?.status || ''));
+                })
+            } catch (error) {
+                console.log('Error', JSON.stringify(error))
+            }
+            setIndexArea(-1)
             setAreaAct(-1)
-            setTimeout(() => {
-                setRemoveArea(false)
-            }, 1000);
+            setRemoveArea(false)
         }
     }, [isOpenPopup])
-    
+
     const onAddMap = () => {
         if (isAdd) {
             setPolygonPoint('');
@@ -209,9 +227,11 @@ export default function DetailMap(props) {
                     url: process.env.REACT_APP_URL_API + '/add-area',
                     data: fd
                 }).then(response => {
-                    alert(response.data.success)
+                    setListArea(response.data.data)
+                    setSnackbarMessage(response.data.success)
+                    setOpenSuccess(true)
                 }).catch(function (error) {
-                    alert('Error ' + Object.assign({}, error).response?.status);
+                    alert('Error ' + Object.assign({}, error).response?.status)
                 })
             } catch (error) {
                 console.log('Error', JSON.stringify(error))
@@ -220,6 +240,12 @@ export default function DetailMap(props) {
             setAdd(false);
             setPolygonPoint('');
         }
+    }
+
+    const setSnackbar = (isOpen = false, message = '', type = 'error') => {
+        setOpenSuccess(isOpen)
+        setSnackbarMessage(message)
+        setTypeSnackbar(type)
     }
 
     const handleCloseAlert = () => {
