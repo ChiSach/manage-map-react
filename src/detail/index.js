@@ -4,9 +4,13 @@ import Button from '@material-ui/core/Button';
 import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from "react-hook-form";
 import TextField from '@material-ui/core/TextField';
+import EditIcon from '@material-ui/icons/Edit';
 import DetailAreaDialogs from './popup';
 import Snackbar from '@material-ui/core/Snackbar';
 import MuiAlert from '@material-ui/lab/Alert';
+import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
+import ChevronRightIcon from '@material-ui/icons/ChevronRight';
+import Draggable from 'react-draggable';
 import { makeStyles } from '@material-ui/core/styles';
 const useStyles = makeStyles({
     root: {
@@ -34,7 +38,7 @@ const useStyles = makeStyles({
     },
     hoverSVG: {
         "&:hover": {
-            fill: '#DA4567 !important',
+            fill: 'rgb(218 69 103 / 20%) !important',
             cursor: 'pointer'
         }
     },
@@ -48,7 +52,25 @@ const useStyles = makeStyles({
         mozBoxShadow: '0px 2px 5px 1px rgba(187,187,187,1)',
         boxShadow: '0px 2px 5px 1px rgba(187,187,187,1)',
         borderRadius: 3,
-        zIndex: 10
+        zIndex: 10,
+        transition: 'right .3s',
+        "&:hover": {
+            cursor: 'pointer'
+        }
+    },
+    leftMenuAct: {
+        right: -250
+    },
+    openLeftMenu: {
+        top: 10,
+        left: -30,
+        position: 'absolute',
+        width: 22,
+        height: 23,
+        zIndex: 9,
+        padding: 5,
+        backgroundColor: '#fff',
+        borderLeft: '1px solid rgb(102 102 102 / 28%)'
     },
     itemArea: {
         margin: 10,
@@ -59,6 +81,20 @@ const useStyles = makeStyles({
         lineHeight: 1,
         borderRadius: 4,
         cursor: 'pointer'
+    },
+    editDiv: {
+        padding: '15px 8px 10px',
+        cursor: 'pointer',
+        marginLeft: 10,
+
+    },
+    editIcon: {
+        "&:hover": {
+            webkitBoxShadow: '0px 2px 5px 1px rgba(187,187,187,1)',
+            mozBoxShadow: '0px 2px 5px 1px rgba(187,187,187,1)',
+            boxShadow: '0px 2px 5px 1px rgba(187,187,187,1)',
+            borderRadius: '2px'
+        }
     },
     itemAreaAtc: {
         webkitBoxShadow: '0px 2px 5px 1px rgba(187,187,187,0.4)',
@@ -94,7 +130,9 @@ export default function DetailMap(props) {
     const [isOpenSuccess, setOpenSuccess] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState("");
     const [typeSnackbar, setTypeSnackbar] = useState("error");
-
+    const [isOpenLeftMenu, setOpenLeftMenu] = useState(false);
+    const [isShowDot, setShowDot] = useState(-1); // isShowDot > -1 status is edit
+    const [xyDots, setXYDots] = useState('');
     useEffect(() => {
         try {
             axios({
@@ -147,7 +185,6 @@ export default function DetailMap(props) {
 
         // remove a area
         if (isRemoveArea && indexArea > -1) {
-            console.log(dataDetail)
             let fd = new FormData()
             fd.append("id", dataDetail.id);
             try {
@@ -156,8 +193,8 @@ export default function DetailMap(props) {
                     url: process.env.REACT_APP_URL_API + '/remove-area/' + dataDetail.id
                 }).then(response => {
                     setDataDetail({})
-                    setOpenSuccess(true)
-                    console.log(response)
+                    setListArea(response.data.data)
+                    setSnackbar(true, response.data.success, 'success')
                 }).catch(function (error) {
                     console.log('Error ' + (Object.assign({}, error).response?.status || ''));
                 })
@@ -179,8 +216,16 @@ export default function DetailMap(props) {
 
     const drawPoint = (e) => {
         if (isAdd && infoImg) {
-            setPolygonPoint(polygonPoint + ' ' + (e.pageX - infoImg.left) + ',' + (e.pageY - infoImg.top + 2))
+            const a = polygonPoint + ' ' + (e.pageX - infoImg.left) + ',' + (e.pageY - infoImg.top + 2)
+            setPolygonPoint(a)
+            setXYDots(a)
         }
+    }
+
+    const showDotOfArea = (i) => {
+        setShowDot(i)
+        setPolygonPoint(listArea[i].coordinatesSVG)
+        setXYDots(listArea[i].coordinatesSVG)
     }
 
     const onMouseOverPoint = (e) => {
@@ -188,6 +233,11 @@ export default function DetailMap(props) {
             document.getElementById('con-image').style.cursor = "pointer"
             if (infoImg?.width > 0) {
                 document.getElementById('con-svg').style.cursor = "pointer"
+            }
+        } else {
+            document.getElementById('con-image').style.cursor = "unset"
+            if (infoImg?.width > 0) {
+                document.getElementById('con-svg').style.cursor = "unset"
             }
         }
     }
@@ -228,13 +278,12 @@ export default function DetailMap(props) {
                     data: fd
                 }).then(response => {
                     setListArea(response.data.data)
-                    setSnackbarMessage(response.data.success)
-                    setOpenSuccess(true)
+                    setSnackbar(true, response.data.success, 'success')
                 }).catch(function (error) {
-                    alert('Error ' + Object.assign({}, error).response?.status)
+                    setSnackbar(true, 'Error ' + Object.assign({}, error).response?.status)
                 })
             } catch (error) {
-                console.log('Error', JSON.stringify(error))
+                setSnackbar(true, 'Error' + JSON.stringify(error))
             }
             reset();
             setAdd(false);
@@ -256,6 +305,35 @@ export default function DetailMap(props) {
         return <MuiAlert elevation={6} variant="filled" {...props} />;
     }
 
+    function openLeftMenu() {
+        setOpenLeftMenu(!isOpenLeftMenu);
+    }
+
+    const handleStart = (e, i) => {
+        e.preventDefault();
+        console.log(e)
+    }
+
+    const handleDrag = (e, i) => {
+        console.log("fsfsdfdsfsdfdsfsd ", isShowDot)
+        e.preventDefault();
+        if(isShowDot >= -1){
+            let editDots = polygonPoint.split(" ")
+            if(e.layerX >= 0 && e.layerX <= infoImg.width && e.layerY >= 0 && e.layerY <= infoImg.height && e.target.localName === 'circle'){
+                editDots[i] = e.layerX+ "," + e.layerY
+                setPolygonPoint(editDots.join(' '))
+            } else{
+                console.log("sdfdf")
+            }
+        }
+        
+    }
+
+    const handleStop = (e, i) => {
+        e.preventDefault();
+        console.log(e)
+    }
+
     // Render HTML
     return dataMap.length ? (
         <div className={classes.root}>
@@ -268,8 +346,8 @@ export default function DetailMap(props) {
                 autoHideDuration={2000}
                 onClose={() => handleCloseAlert()}
             >
-                <Alert onClose={handleCloseAlert} severity="success">
-                    {'Success!'}
+                <Alert onClose={handleCloseAlert} severity={typeSnackbar}>
+                    {snackbarMessage}
                 </Alert>
             </Snackbar>
             {
@@ -280,12 +358,18 @@ export default function DetailMap(props) {
             }
             {
                 listArea.length > 0 ?
-                    <div className={classes.leftMenu}>
+                    <div className={isOpenLeftMenu ? `${classes.leftMenu} ${classes.leftMenuAct}` : `${classes.leftMenu}`}>
+                        <div className={classes.openLeftMenu}>
+                            {
+                                isOpenLeftMenu ? <ChevronLeftIcon onClick={openLeftMenu} /> : <ChevronRightIcon onClick={openLeftMenu} />
+                            }
+                        </div>
                         {
                             listArea.map((item, i) => {
                                 return (
-                                    <div>
+                                    <div style={{ display: 'flex', justifyContent: 'center' }}>
                                         <p onClick={() => scrollIntoView(i)} className={`${classes.itemArea} ${areaAct === i ? classes.itemAreaAtc : ''}`}>{item.title}</p>
+                                        <div className={classes.editDiv}><EditIcon className={classes.editIcon} onClick={() => showDotOfArea(i)} /></div>
                                     </div>
                                 )
                             })
@@ -340,16 +424,30 @@ export default function DetailMap(props) {
                             <svg xmlns="http://www.w3.org/2000/svg" height={infoImg.height} width={infoImg.width}>
                                 <g fill="rgb(50 150 219 / 57%)" strokeWidth="1" className={`${classes.hoverSVG}`} stroke="rgb(50 150 219 / 57%)">
                                     <polygon points={polygonPoint + ""} />
+                                    {
+                                        xyDots.split(" ").map((val, i) => {
+                                            console.log(val.split(","))
+                                            return isShowDot===-1 ? (
+                                                <circle cx={+val.split(",")[0]} cy={+val.split(",")[1]} r="5" stroke="red" fill="transparent" />
+                                            ) : (
+                                            <Draggable
+                                                onStart={(e) => handleStart(e, i)}
+                                                onDrag={(e) => handleDrag(e, i)}
+                                                onStop={(e) => handleStop(e, i)}>
+                                                <circle cx={+val.split(",")[0]} cy={+val.split(",")[1]} r="5" stroke="red" fill="transparent" />
+                                            </Draggable>
+                                            )
+                                        })
+                                    }
                                 </g>
                                 {
-                                    listArea.length > 0 ?
+                                    listArea.length > 0 && isShowDot === -1 ?
                                         listArea.map((item, i) => {
                                             return (
                                                 <g fill={`rgb(${i + 51} ${i + 151} 219 / 57%)`} className={`${classes.hoverSVG}`}
                                                     strokeWidth="1" stroke={`rgb(${i + 51} ${151 + i} 219 / 57%)`}
-                                                    onClick={(e) => showDetailArea(i)} id={"area-scroll-" + i}
                                                 >
-                                                    <polygon points={item.coordinatesSVG + ""} />
+                                                    <polygon points={item.coordinatesSVG + ""} onClick={(e) => showDetailArea(i)} id={"area-scroll-" + i} />
                                                 </g>
                                             )
                                         })
