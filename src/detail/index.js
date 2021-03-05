@@ -131,7 +131,7 @@ export default function DetailMap(props) {
     const [snackbarMessage, setSnackbarMessage] = useState("");
     const [typeSnackbar, setTypeSnackbar] = useState("error");
     const [isOpenLeftMenu, setOpenLeftMenu] = useState(false);
-    const [isShowDot, setShowDot] = useState(-1); // isShowDot > -1 status is edit
+    const [isShowDot, setShowDot] = useState({index: -1, idArea: -1}); // isShowDot > -1 status is edit
     const [xyDots, setXYDots] = useState('');
     useEffect(() => {
         try {
@@ -222,10 +222,10 @@ export default function DetailMap(props) {
         }
     }
 
-    const showDotOfArea = (i) => {
-        setShowDot(i)
-        setPolygonPoint(listArea[i].coordinatesSVG)
-        setXYDots(listArea[i].coordinatesSVG)
+    const showDotOfArea = (index, idArea) => {
+        setShowDot({index, idArea})
+        setPolygonPoint(listArea[index].coordinatesSVG)
+        setXYDots(listArea[index].coordinatesSVG)
     }
 
     const onMouseOverPoint = (e) => {
@@ -279,11 +279,14 @@ export default function DetailMap(props) {
                 }).then(response => {
                     setListArea(response.data.data)
                     setSnackbar(true, response.data.success, 'success')
+                    setXYDots('')
                 }).catch(function (error) {
                     setSnackbar(true, 'Error ' + Object.assign({}, error).response?.status)
+                    setXYDots('')
                 })
             } catch (error) {
                 setSnackbar(true, 'Error' + JSON.stringify(error))
+                setXYDots('')
             }
             reset();
             setAdd(false);
@@ -311,27 +314,35 @@ export default function DetailMap(props) {
 
     const handleStart = (e, i) => {
         e.preventDefault();
-        console.log(e)
     }
 
     const handleDrag = (e, i) => {
-        console.log("fsfsdfdsfsdfdsfsd ", isShowDot)
         e.preventDefault();
-        if(isShowDot >= -1){
+        if (isShowDot.index >= -1) {
             let editDots = polygonPoint.split(" ")
-            if(e.layerX >= 0 && e.layerX <= infoImg.width && e.layerY >= 0 && e.layerY <= infoImg.height && e.target.localName === 'circle'){
-                editDots[i] = e.layerX+ "," + e.layerY
+            if (e.layerX >= 0 && e.layerX <= infoImg.width && e.layerY >= 0 && e.layerY <= infoImg.height && e.target.localName === 'circle') {
+                editDots[i] = e.layerX + "," + e.layerY
                 setPolygonPoint(editDots.join(' '))
-            } else{
-                console.log("sdfdf")
+            } else {
+                // console.log(e)
             }
         }
-        
     }
 
     const handleStop = (e, i) => {
         e.preventDefault();
-        console.log(e)
+    }
+
+    const upDateArea = (e) => {
+        setShowDot({index: -1, idArea: -1});
+        setPolygonPoint('')
+        setXYDots('')
+    }
+
+    const cancelUpdate = () => {
+        setShowDot({index: -1, idArea: -1});
+        setPolygonPoint('')
+        setXYDots('')
     }
 
     // Render HTML
@@ -369,7 +380,10 @@ export default function DetailMap(props) {
                                 return (
                                     <div style={{ display: 'flex', justifyContent: 'center' }}>
                                         <p onClick={() => scrollIntoView(i)} className={`${classes.itemArea} ${areaAct === i ? classes.itemAreaAtc : ''}`}>{item.title}</p>
-                                        <div className={classes.editDiv}><EditIcon className={classes.editIcon} onClick={() => showDotOfArea(i)} /></div>
+                                        {
+                                            isShowDot.index === -1 && !isAdd ?
+                                                (<div className={classes.editDiv}><EditIcon className={classes.editIcon} onClick={() => showDotOfArea(i, listArea.id)} /></div>) : ""
+                                        }
                                     </div>
                                 )
                             })
@@ -381,12 +395,28 @@ export default function DetailMap(props) {
             <div>
                 <h3>{dataMap[0].title}</h3>
                 <div className={classes.conBtn}>
-                    <Button variant="contained" color="primary" onClick={onAddMap}>
-                        {!isAdd ? "Thêm" : "Hủy"}
-                    </Button>
-                    <Button variant="contained" disabled={!isAdd} color="primary" onClick={onSubmit} style={{ marginLeft: 10 }}>
-                        {"Save"}
-                    </Button>
+                    {
+                        isShowDot.index === -1 ? (
+                            <>
+                                <Button variant="contained" color="primary" onClick={onAddMap}>
+                                    {!isAdd ? "Thêm" : "Hủy"}
+                                </Button>
+                                <Button variant="contained" disabled={!isAdd} color="primary" onClick={onSubmit} style={{ marginLeft: 10 }}>
+                                    {"Save"}
+                                </Button>
+                            </>
+
+                        ) : (
+                                <>
+                                    <Button variant="contained" color="primary" style={{ marginLeft: 10 }} onClick={upDateArea}>
+                                        {"Update"}
+                                    </Button>
+                                    <Button variant="contained" style={{ marginLeft: 10 }} onClick={cancelUpdate}>
+                                        {"Cancel"}
+                                    </Button>
+                                </>
+                            )
+                    }
                 </div>
                 {
                     isAdd ? <form>
@@ -426,22 +456,21 @@ export default function DetailMap(props) {
                                     <polygon points={polygonPoint + ""} />
                                     {
                                         xyDots.split(" ").map((val, i) => {
-                                            console.log(val.split(","))
-                                            return isShowDot===-1 ? (
+                                            return isShowDot.index === -1 ? (
                                                 <circle cx={+val.split(",")[0]} cy={+val.split(",")[1]} r="5" stroke="red" fill="transparent" />
                                             ) : (
-                                            <Draggable
-                                                onStart={(e) => handleStart(e, i)}
-                                                onDrag={(e) => handleDrag(e, i)}
-                                                onStop={(e) => handleStop(e, i)}>
-                                                <circle cx={+val.split(",")[0]} cy={+val.split(",")[1]} r="5" stroke="red" fill="transparent" />
-                                            </Draggable>
-                                            )
+                                                    <Draggable
+                                                        onStart={(e) => handleStart(e, i)}
+                                                        onDrag={(e) => handleDrag(e, i)}
+                                                        onStop={(e) => handleStop(e, i)}>
+                                                        <circle cx={+val.split(",")[0]} cy={+val.split(",")[1]} r="5" stroke="red" fill="transparent" />
+                                                    </Draggable>
+                                                )
                                         })
                                     }
                                 </g>
                                 {
-                                    listArea.length > 0 && isShowDot === -1 ?
+                                    listArea.length > 0 && isShowDot.index === -1 ?
                                         listArea.map((item, i) => {
                                             return (
                                                 <g fill={`rgb(${i + 51} ${i + 151} 219 / 57%)`} className={`${classes.hoverSVG}`}
