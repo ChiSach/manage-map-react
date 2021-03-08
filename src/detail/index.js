@@ -25,8 +25,9 @@ const useStyles = makeStyles({
     conImgSvg: {
         position: 'relative',
         width: "100%",
-        height: "auto",
-        maxWidth: 1024
+        height: "100vh",
+        maxWidth: 1024,
+        marginTop: 10
     },
     SVG: {
         position: "absolute",
@@ -121,7 +122,6 @@ export default function DetailMap(props) {
     const [listArea, setListArea] = useState([]);
     const [dataMap, setDataMap] = useState([]);
     const [isLoading, setLoading] = useState(true);
-    const [infoImg, setInfoImg] = useState(null);
     const [isAdd, setAdd] = useState(false);
     const [isOpenPopup, setOpenPopup] = useState(false);
     const [dataDetail, setDataDetail] = useState({});
@@ -134,7 +134,7 @@ export default function DetailMap(props) {
     const [snackbarMessage, setSnackbarMessage] = useState("");
     const [typeSnackbar, setTypeSnackbar] = useState("error");
     const [isOpenLeftMenu, setOpenLeftMenu] = useState(false);
-    const [isShowDot, setShowDot] = useState({index: -1, idArea: -1}); // isShowDot > -1 status is edit
+    const [isShowDot, setShowDot] = useState({ index: -1, idArea: -1 }); // isShowDot > -1 status is edit
     const [xyDots, setXYDots] = useState('');
     useEffect(() => {
         try {
@@ -174,12 +174,6 @@ export default function DetailMap(props) {
         }
     }, [isAdd])
 
-    useEffect(function () {
-        setTimeout(() => {
-            setInfoImg(document.getElementById('con-image')?.getBoundingClientRect())
-        }, 1000);
-    }, []);
-
     useEffect(async () => {
         if (!isOpenPopup && indexArea > -1) {
             document.getElementById("area-scroll-" + indexArea).style.fill = `rgb(${indexArea + 51} ${indexArea + 151} 219 / 57%)`
@@ -218,15 +212,16 @@ export default function DetailMap(props) {
     }
 
     const drawPoint = (e) => {
-        if (isAdd && infoImg) {
-            const a = polygonPoint + ' ' + (e.pageX - infoImg.left) + ',' + (e.pageY - infoImg.top + 2)
+        if (isAdd) {
+            console.log(e)
+            const a = polygonPoint + ' ' + (e.pageX - 20) + ',' + (e.pageY - 178)
             setPolygonPoint(a)
             setXYDots(a)
         }
     }
 
     const showDotOfArea = (index, idArea) => {
-        setShowDot({index, idArea})
+        setShowDot({ index, idArea })
         setPolygonPoint(listArea[index].coordinatesSVG)
         setXYDots(listArea[index].coordinatesSVG)
     }
@@ -234,14 +229,8 @@ export default function DetailMap(props) {
     const onMouseOverPoint = (e) => {
         if (isAdd) {
             document.getElementById('con-image').style.cursor = "pointer"
-            if (infoImg?.width > 0) {
-                document.getElementById('con-svg').style.cursor = "pointer"
-            }
         } else {
             document.getElementById('con-image').style.cursor = "unset"
-            if (infoImg?.width > 0) {
-                document.getElementById('con-svg').style.cursor = "unset"
-            }
         }
     }
 
@@ -323,7 +312,7 @@ export default function DetailMap(props) {
         e.preventDefault();
         if (isShowDot.index >= -1) {
             let editDots = polygonPoint.split(" ")
-            if (e.layerX >= 0 && e.layerX <= infoImg.width && e.layerY >= 0 && e.layerY <= infoImg.height && e.target.localName === 'circle') {
+            if (e.layerX >= 0 && e.layerY >= 0 && e.target.localName === 'circle') {
                 editDots[i] = e.layerX + "," + e.layerY
                 setPolygonPoint(editDots.join(' '))
             } else {
@@ -337,13 +326,13 @@ export default function DetailMap(props) {
     }
 
     const upDateArea = (e) => {
-        setShowDot({index: -1, idArea: -1});
+        setShowDot({ index: -1, idArea: -1 });
         setPolygonPoint('')
         setXYDots('')
     }
 
     const cancelUpdate = () => {
-        setShowDot({index: -1, idArea: -1});
+        setShowDot({ index: -1, idArea: -1 });
         setPolygonPoint('')
         setXYDots('')
     }
@@ -408,15 +397,15 @@ export default function DetailMap(props) {
                                 </Button>
                             </>
                         ) : (
-                                <>
-                                    <Button variant="contained" color="primary" style={{ marginLeft: 10 }} onClick={upDateArea}>
-                                        {"Update"}
-                                    </Button>
-                                    <Button variant="contained" style={{ marginLeft: 10 }} onClick={cancelUpdate}>
-                                        {"Cancel"}
-                                    </Button>
-                                </>
-                            )
+                            <>
+                                <Button variant="contained" color="primary" style={{ marginLeft: 10 }} onClick={upDateArea}>
+                                    {"Update"}
+                                </Button>
+                                <Button variant="contained" style={{ marginLeft: 10 }} onClick={cancelUpdate}>
+                                    {"Cancel"}
+                                </Button>
+                            </>
+                        )
                     }
                 </div>
                 {
@@ -438,55 +427,48 @@ export default function DetailMap(props) {
                 }
             </div>
             <div className={classes.conImgSvg}>
-                {
-                    dataMap[0].url_image ? (
-                        <div className={`${classes.conImg}`}>
-                            <img src={'http://127.0.0.1:8000' + dataMap[0].url_image} ref={imageRef}
-                                onClick={drawPoint}
-                                onMouseOver={onMouseOverPoint}
-                                id={`con-image`} />
-                        </div>
-                    ) : (<div></div>)
-                }
-                {
-                    (infoImg?.width > 0) ? (
-                        <div className={`${classes.SVG} `} id="con-svg" onClick={drawPoint}
-                            onMouseOver={onMouseOverPoint}>
-                            <svg xmlns="http://www.w3.org/2000/svg" height={infoImg.height} width={infoImg.width}>
-                                <g fill="rgb(50 150 219 / 57%)" strokeWidth="1" className={`${classes.hoverSVG}`} stroke="rgb(50 150 219 / 57%)">
-                                    <polygon points={polygonPoint + ""} />
-                                    {
-                                        xyDots.split(" ").map((val, i) => {
-                                            return isShowDot.index === -1 ? (
-                                                <circle cx={+val.split(",")[0]} cy={+val.split(",")[1]} r="5" stroke="red" fill="transparent" />
-                                            ) : (
-                                                    <Draggable
-                                                        onStart={(e) => handleStart(e, i)}
-                                                        onDrag={(e) => handleDrag(e, i)}
-                                                        onStop={(e) => handleStop(e, i)}>
-                                                        <circle cx={+val.split(",")[0]} cy={+val.split(",")[1]} r="5" stroke="red" fill="transparent" />
-                                                    </Draggable>
-                                                )
-                                        })
-                                    }
-                                </g>
-                                {
-                                    listArea.length > 0 && isShowDot.index === -1 ?
-                                        listArea.map((item, i) => {
-                                            return (
-                                                <g fill={`rgb(${i + 51} ${i + 151} 219 / 57%)`} className={`${classes.hoverSVG}`}
-                                                    strokeWidth="1" stroke={`rgb(${i + 51} ${151 + i} 219 / 57%)`}
-                                                >
-                                                    <polygon points={item.coordinatesSVG + ""} onClick={(e) => showDetailArea(i)} id={"area-scroll-" + i} />
-                                                </g>
-                                            )
-                                        })
-                                        : ''
-                                }
-                            </svg>
-                        </div>
-                    ) : ''
-                }
+                {/* -------------------------------------- */}
+                <svg xmlns="http://www.w3.org/2000/svg" height={"100%"} width={"100%"} id="con-svg" onClick={drawPoint}
+                    onMouseOver={onMouseOverPoint}>
+                    <g>
+                        <image href={'http://127.0.0.1:8000' + dataMap[0].url_image} width="100%"
+                            onClick={drawPoint}
+                            onMouseOver={onMouseOverPoint}
+                            id={`con-image`}
+                        />
+                    </g>
+                    <g fill="rgb(50 150 219 / 57%)" strokeWidth="1" className={`${classes.hoverSVG}`} stroke="rgb(50 150 219 / 57%)">
+                        <polygon points={polygonPoint + ""} />
+                        {
+                            xyDots.split(" ").map((val, i) => {
+                                return isShowDot.index === -1 ? (
+                                    <circle cx={+val.split(",")[0]} cy={+val.split(",")[1]} r="5" stroke="red" fill="transparent" />
+                                ) : (
+                                    <Draggable
+                                        onStart={(e) => handleStart(e, i)}
+                                        onDrag={(e) => handleDrag(e, i)}
+                                        onStop={(e) => handleStop(e, i)}>
+                                        <circle cx={+val.split(",")[0]} cy={+val.split(",")[1]} r="5" stroke="red" fill="transparent" />
+                                    </Draggable>
+                                )
+                            })
+                        }
+                    </g>
+                    {
+                        listArea.length > 0 && isShowDot.index === -1 ?
+                            listArea.map((item, i) => {
+                                return (
+                                    <g fill={`rgb(${i + 51} ${i + 151} 219 / 57%)`} className={`${classes.hoverSVG}`}
+                                        strokeWidth="1" stroke={`rgb(${i + 51} ${151 + i} 219 / 57%)`}
+                                    >
+                                        <polygon points={item.coordinatesSVG + ""} onClick={(e) => showDetailArea(i)} id={"area-scroll-" + i} />
+                                    </g>
+                                )
+                            })
+                            : ''
+                    }
+                </svg>
+                {/* -------------------------------------- */}
             </div>
         </div>
     ) : (<div>Loading...</div>)
