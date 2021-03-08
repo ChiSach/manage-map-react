@@ -214,7 +214,7 @@ export default function DetailMap(props) {
     const drawPoint = (e) => {
         if (isAdd) {
             console.log(e)
-            const a = polygonPoint + ' ' + (e.pageX - 20) + ',' + (e.pageY - 178)
+            const a = polygonPoint + ' ' + (e.nativeEvent.layerX) + ',' + (e.nativeEvent.layerY)
             setPolygonPoint(a)
             setXYDots(a)
         }
@@ -312,8 +312,8 @@ export default function DetailMap(props) {
         e.preventDefault();
         if (isShowDot.index >= -1) {
             let editDots = polygonPoint.split(" ")
-            if (e.layerX >= 0 && e.layerY >= 0 && e.target.localName === 'circle') {
-                editDots[i] = e.layerX + "," + e.layerY
+            if (e.layerX >= 0 && e.layerY >= 0) {
+                editDots[i] = (e.layerX) + "," + (e.layerY)
                 setPolygonPoint(editDots.join(' '))
             } else {
                 // console.log(e)
@@ -325,10 +325,24 @@ export default function DetailMap(props) {
         e.preventDefault();
     }
 
-    const upDateArea = (e) => {
-        setShowDot({ index: -1, idArea: -1 });
-        setPolygonPoint('')
-        setXYDots('')
+    const upDateArea = async (e) => {
+        try {
+            const res = await axios.put(process.env.REACT_APP_URL_API + '/update-area-coordinatesSVG', {
+                id: isShowDot.idArea,
+                coordinatesSVG: polygonPoint
+            });
+
+            if (res.status === 200) {
+                setListArea(res.data.listAreas)
+                setSnackbar(true, res.data.success, 'success')
+            }
+        } catch (error) {
+            setSnackbar(true, 'Error', 'error')
+        } finally {
+            setShowDot({ index: -1, idArea: -1 });
+            setPolygonPoint('')
+            setXYDots('')
+        }
     }
 
     const cancelUpdate = () => {
@@ -374,7 +388,7 @@ export default function DetailMap(props) {
                                         <p onClick={() => scrollIntoView(i)} className={`${classes.itemArea} ${areaAct === i ? classes.itemAreaAtc : ''}`}>{item.title}</p>
                                         {
                                             isShowDot.index === -1 && !isAdd ?
-                                                (<div className={classes.editDiv}><EditIcon className={classes.editIcon} onClick={() => showDotOfArea(i, listArea.id)} /></div>) : ""
+                                                (<div className={classes.editDiv}><EditIcon className={classes.editIcon} onClick={() => showDotOfArea(i, item.id)} /></div>) : ""
                                         }
                                     </div>
                                 )
@@ -382,7 +396,6 @@ export default function DetailMap(props) {
                         }
                     </div> : ''
             }
-
             <div>
                 <h3>{dataMap[0].title}</h3>
                 <div className={classes.conBtn}>
@@ -428,7 +441,7 @@ export default function DetailMap(props) {
             </div>
             <div className={classes.conImgSvg}>
                 {/* -------------------------------------- */}
-                <svg xmlns="http://www.w3.org/2000/svg" height={"100%"} width={"100%"} id="con-svg" onClick={drawPoint}
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="1 1 1000 1000" id="con-svg" onClick={drawPoint}
                     onMouseOver={onMouseOverPoint}>
                     <g>
                         <image href={'http://127.0.0.1:8000' + dataMap[0].url_image} width="100%"
