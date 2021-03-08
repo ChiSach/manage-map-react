@@ -23,7 +23,10 @@ const useStyles = makeStyles({
         marginTop: 10
     },
     conImgSvg: {
-        position: 'relative'
+        position: 'relative',
+        width: "100%",
+        height: "auto",
+        maxWidth: 1024
     },
     SVG: {
         position: "absolute",
@@ -388,7 +391,6 @@ export default function DetailMap(props) {
                                 )
                             })
                         }
-
                     </div> : ''
             }
 
@@ -405,7 +407,6 @@ export default function DetailMap(props) {
                                     {"Save"}
                                 </Button>
                             </>
-
                         ) : (
                                 <>
                                     <Button variant="contained" color="primary" style={{ marginLeft: 10 }} onClick={upDateArea}>
