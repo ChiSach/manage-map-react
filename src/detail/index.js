@@ -1,7 +1,7 @@
 import { useParams } from "react-router-dom";
 import axios from 'axios';
 import Button from '@material-ui/core/Button';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useForm } from "react-hook-form";
 import TextField from '@material-ui/core/TextField';
 import EditIcon from '@material-ui/icons/Edit';
@@ -25,7 +25,7 @@ const useStyles = makeStyles({
     conImgSvg: {
         position: 'relative',
         width: "100%",
-        height: "100vh",
+        height: "auto",
         maxWidth: 1024,
         marginTop: 10
     },
@@ -126,16 +126,21 @@ export default function DetailMap(props) {
     const [isOpenPopup, setOpenPopup] = useState(false);
     const [dataDetail, setDataDetail] = useState({});
     const [polygonPoint, setPolygonPoint] = useState('');
+    const [polygonPointTmp, setPolygonPointTmp] = useState('');
     const [areaAct, setAreaAct] = useState(-1);
     const [indexArea, setIndexArea] = useState(-1);
     const [isRemoveArea, setRemoveArea] = useState(false);
     const imageRef = useRef();
+    const rootRef = useRef();
+    const conImgRef = useRef();
+    const [widthHeightImg, setWidthHeightImg] = useState([0, 0]);
     const [isOpenSuccess, setOpenSuccess] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState("");
     const [typeSnackbar, setTypeSnackbar] = useState("error");
     const [isOpenLeftMenu, setOpenLeftMenu] = useState(false);
     const [isShowDot, setShowDot] = useState({ index: -1, idArea: -1 }); // isShowDot > -1 status is edit
     const [xyDots, setXYDots] = useState('');
+
     useEffect(() => {
         try {
             axios({
@@ -179,8 +184,6 @@ export default function DetailMap(props) {
             document.getElementById("area-scroll-" + indexArea).style.fill = `rgb(${indexArea + 51} ${indexArea + 151} 219 / 57%)`
             setAreaAct(-1)
         }
-
-        // remove a area
         if (isRemoveArea && indexArea > -1) {
             let fd = new FormData()
             fd.append("id", dataDetail.id);
@@ -204,26 +207,55 @@ export default function DetailMap(props) {
         }
     }, [isOpenPopup])
 
+    useEffect(() => {
+        window.addEventListener("resize", reSizeImage);
+        return () => window.removeEventListener("resize", reSizeImage);
+    }, []);
+
+    const reSizeImage = () => {
+        setShowDot({ index: -1, idArea: -1 })
+        setXYDots('')
+        setPolygonPoint('')
+        setPolygonPointTmp('')
+        setWidthHeightImg([imageRef.current.offsetWidth, imageRef.current.offsetHeight])
+    }
+
+    const handleImageLoad = (e) => {
+        setWidthHeightImg([e.target.offsetWidth, e.target.offsetHeight])
+    }
+
     const onAddMap = () => {
         if (isAdd) {
             setPolygonPoint('');
         }
         setAdd(!isAdd)
+        setXYDots('')
     }
 
     const drawPoint = (e) => {
         if (isAdd) {
-            console.log(e)
+            const b = polygonPointTmp + ' ' + (100 / (widthHeightImg[0] / e.nativeEvent.layerX)).toFixed(4) + "," + (100 / (widthHeightImg[1] / e.nativeEvent.layerY)).toFixed(4)
             const a = polygonPoint + ' ' + (e.nativeEvent.layerX) + ',' + (e.nativeEvent.layerY)
             setPolygonPoint(a)
+            setPolygonPointTmp(b)
             setXYDots(a)
         }
     }
 
     const showDotOfArea = (index, idArea) => {
         setShowDot({ index, idArea })
-        setPolygonPoint(listArea[index].coordinatesSVG)
-        setXYDots(listArea[index].coordinatesSVG)
+        let coordinatesSVG = "";
+        // % -> px: coordinatesSVG
+        coordinatesSVG = listArea[index].coordinatesSVG.split(" ").map(ele => {
+            let xY = '';
+            xY = ele.split(",").map((item, i) => {
+                return (item * widthHeightImg[i] / 100).toFixed(4)
+            })
+            return xY.join(',')
+        }).join(" ")
+        setPolygonPoint(coordinatesSVG)
+        setPolygonPointTmp(listArea[index].coordinatesSVG)
+        setXYDots(coordinatesSVG)
     }
 
     const onMouseOverPoint = (e) => {
@@ -262,7 +294,7 @@ export default function DetailMap(props) {
             try {
                 let fd = new FormData()
                 fd.append("title", getValues('title'));
-                fd.append("coordinatesSVG", polygonPoint);
+                fd.append("coordinatesSVG", polygonPointTmp);
                 fd.append("map_id", getValues('map_id'));
                 await axios({
                     method: 'POST',
@@ -312,11 +344,25 @@ export default function DetailMap(props) {
         e.preventDefault();
         if (isShowDot.index >= -1) {
             let editDots = polygonPoint.split(" ")
-            if (e.layerX >= 0 && e.layerY >= 0) {
-                editDots[i] = (e.layerX) + "," + (e.layerY)
+            let editDotsTmp = polygonPointTmp.split(" ")
+            if (e.targetTouches) {
+                
+                // mobile
+                const offsetHeight = conImgRef.current.offsetTop + 2;
+                const offsetWidth = conImgRef.current.offsetLeft;
+                editDots[i] = (e.targetTouches[0].clientX - offsetWidth) + "," + (e.targetTouches[0].clientY - offsetHeight)
+                editDotsTmp[i] = (100 / (widthHeightImg[0] / (e.targetTouches[0].clientX - offsetWidth))).toFixed(4) + "," + (100 / (widthHeightImg[1] / (e.targetTouches[0].clientY - offsetHeight))).toFixed(4)
+                setPolygonPointTmp(editDotsTmp.join(' '))
                 setPolygonPoint(editDots.join(' '))
             } else {
-                // console.log(e)
+                if (e.layerX >= 0 && e.layerY >= 0) {
+                    editDots[i] = (e.layerX) + "," + (e.layerY)
+                    editDotsTmp[i] = (100 / (widthHeightImg[0] / e.layerX)).toFixed(4) + "," + (100 / (widthHeightImg[1] / e.layerY)).toFixed(4)
+                    setPolygonPointTmp(editDotsTmp.join(' '))
+                    setPolygonPoint(editDots.join(' '))
+                } else {
+                    // console.log(e)
+                }
             }
         }
     }
@@ -329,7 +375,7 @@ export default function DetailMap(props) {
         try {
             const res = await axios.put(process.env.REACT_APP_URL_API + '/update-area-coordinatesSVG', {
                 id: isShowDot.idArea,
-                coordinatesSVG: polygonPoint
+                coordinatesSVG: polygonPointTmp
             });
 
             if (res.status === 200) {
@@ -341,6 +387,7 @@ export default function DetailMap(props) {
         } finally {
             setShowDot({ index: -1, idArea: -1 });
             setPolygonPoint('')
+            setPolygonPointTmp('')
             setXYDots('')
         }
     }
@@ -351,9 +398,34 @@ export default function DetailMap(props) {
         setXYDots('')
     }
 
+    const showAreaList = () => {
+        if (listArea.length > 0 && isShowDot.index === -1) {
+            const areaList = listArea.map((item, i) => {
+                let coordinatesSVG = "";
+                coordinatesSVG = item.coordinatesSVG.split(" ").map(ele => {
+                    let xY = '';
+                    xY = ele.split(",").map((item, i) => {
+                        return (item * widthHeightImg[i] / 100).toFixed(4)
+                    })
+                    return xY.join(',')
+                })
+                return (
+                    <g fill={`rgb(${i + 51} ${i + 151} 219 / 57%)`} className={`${classes.hoverSVG}`}
+                        strokeWidth="1" stroke={`rgb(${i + 51} ${151 + i} 219 / 57%)`}
+                    >
+                        <polygon points={coordinatesSVG + ""} onClick={(e) => showDetailArea(i)} id={"area-scroll-" + i} />
+                    </g>
+                )
+            })
+            return areaList;
+        } else {
+            return ""
+        }
+    }
+
     // Render HTML
     return dataMap.length ? (
-        <div className={classes.root}>
+        <div className={classes.root} ref={rootRef}>
             <Snackbar
                 anchorOrigin={{
                     vertical: 'top',
@@ -439,17 +511,10 @@ export default function DetailMap(props) {
                     </form> : <div style={{ height: 50 }}></div>
                 }
             </div>
-            <div className={classes.conImgSvg}>
-                {/* -------------------------------------- */}
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="1 1 1000 1000" id="con-svg" onClick={drawPoint}
+            <div className={classes.conImgSvg} ref={conImgRef}>
+                <img src={'http://127.0.0.1:8000' + dataMap[0].url_image} ref={imageRef} onLoad={handleImageLoad} style={{ width: '100%', height: 'auto', maxHeight: '100%' }} id={`con-image`} />
+                <svg xmlns="http://www.w3.org/2000/svg" id="con-svg" onClick={drawPoint} style={{ position: 'absolute', width: '100%', maxWidth: '1024px', height: '100%', left: 0 }}
                     onMouseOver={onMouseOverPoint}>
-                    <g>
-                        <image href={'http://127.0.0.1:8000' + dataMap[0].url_image} width="100%"
-                            onClick={drawPoint}
-                            onMouseOver={onMouseOverPoint}
-                            id={`con-image`}
-                        />
-                    </g>
                     <g fill="rgb(50 150 219 / 57%)" strokeWidth="1" className={`${classes.hoverSVG}`} stroke="rgb(50 150 219 / 57%)">
                         <polygon points={polygonPoint + ""} />
                         {
@@ -461,27 +526,14 @@ export default function DetailMap(props) {
                                         onStart={(e) => handleStart(e, i)}
                                         onDrag={(e) => handleDrag(e, i)}
                                         onStop={(e) => handleStop(e, i)}>
-                                        <circle cx={+val.split(",")[0]} cy={+val.split(",")[1]} r="5" stroke="red" fill="transparent" />
+                                        <circle style={{touchAction: "none"}} cx={+val.split(",")[0]} cy={+val.split(",")[1]} r="5" stroke="red" fill="transparent" />
                                     </Draggable>
                                 )
                             })
                         }
                     </g>
-                    {
-                        listArea.length > 0 && isShowDot.index === -1 ?
-                            listArea.map((item, i) => {
-                                return (
-                                    <g fill={`rgb(${i + 51} ${i + 151} 219 / 57%)`} className={`${classes.hoverSVG}`}
-                                        strokeWidth="1" stroke={`rgb(${i + 51} ${151 + i} 219 / 57%)`}
-                                    >
-                                        <polygon points={item.coordinatesSVG + ""} onClick={(e) => showDetailArea(i)} id={"area-scroll-" + i} />
-                                    </g>
-                                )
-                            })
-                            : ''
-                    }
+                    {showAreaList()}
                 </svg>
-                {/* -------------------------------------- */}
             </div>
         </div>
     ) : (<div>Loading...</div>)
