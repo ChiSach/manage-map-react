@@ -306,10 +306,12 @@ export default function DetailMap(props) {
     }
 
     const showDetailArea = (i) => {
-        scrollIntoView(i)
-        setIndexArea(i)
-        setDataDetail(listArea[i]);
-        setOpenPopup(true);
+        if(!isAdd){
+            scrollIntoView(i)
+            setIndexArea(i)
+            setDataDetail(listArea[i]);
+            setOpenPopup(true);
+        }
     }
 
     const onSubmit = async () => {
