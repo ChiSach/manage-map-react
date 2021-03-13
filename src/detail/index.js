@@ -5,6 +5,7 @@ import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useForm } from "react-hook-form";
 import TextField from '@material-ui/core/TextField';
 import EditIcon from '@material-ui/icons/Edit';
+import SearchIcon from '@material-ui/icons/Search';
 import DetailAreaDialogs from './popup';
 import Snackbar from '@material-ui/core/Snackbar';
 import MuiAlert from '@material-ui/lab/Alert';
@@ -105,6 +106,25 @@ const useStyles = makeStyles({
         mozBoxShadow: '0px 2px 5px 1px rgba(187,187,187,0.4)',
         boxShadow: '0px 2px 5px 1px rgba(187,187,187,0.4)',
         backgroundColor: 'rgb(153 153 153 / 43%)'
+    },
+    conInputSearch: {
+        display: 'flex',
+        position: "relative",
+        justifyContent: 'center',
+        padding: '10px'
+    },
+    inputSearch: {
+        padding: '5px',
+        border: '1px solid #666',
+        borderRadius: '4px'
+    },
+    iconSearch:{
+        position: 'absolute',
+        top: '11px',
+        right: '35px',
+        backgroundColor: '#99999936',
+        height: '25px',
+        paddingLeft: '2px'
     }
 
 });
@@ -120,6 +140,7 @@ export default function DetailMap(props) {
     });
     const classes = useStyles();
     const [listArea, setListArea] = useState([]);
+    const [listAreaTmp, setListAreaTmp] = useState([]);
     const [dataMap, setDataMap] = useState([]);
     const [isLoading, setLoading] = useState(true);
     const [isAdd, setAdd] = useState(false);
@@ -132,6 +153,7 @@ export default function DetailMap(props) {
     const [isRemoveArea, setRemoveArea] = useState(false);
     const imageRef = useRef();
     const rootRef = useRef();
+    const inputSearch = useRef();
     const conImgRef = useRef();
     const [widthHeightImg, setWidthHeightImg] = useState([0, 0]);
     const [isOpenSuccess, setOpenSuccess] = useState(false);
@@ -169,6 +191,7 @@ export default function DetailMap(props) {
                 }).then(response => {
                     if (response.data.success === "Successfully") {
                         setListArea(response.data.listArea)
+                        setListAreaTmp(response.data.listArea)
                     }
                 }).catch(function (error) {
                     console.log('Error ' + (Object.assign({}, error).response?.status || ''));
@@ -346,7 +369,7 @@ export default function DetailMap(props) {
             let editDots = polygonPoint.split(" ")
             let editDotsTmp = polygonPointTmp.split(" ")
             if (e.targetTouches) {
-                
+
                 // mobile
                 const offsetHeight = conImgRef.current.offsetTop + 2;
                 const offsetWidth = conImgRef.current.offsetLeft;
@@ -423,6 +446,12 @@ export default function DetailMap(props) {
         }
     }
 
+    const onSearchArea = () => {
+        if(inputSearch.current.value !== ""){
+            setListAreaTmp([...listArea.filter(item => item.title === inputSearch.current.value)])
+        }
+    }
+
     // Render HTML
     return dataMap.length ? (
         <div className={classes.root} ref={rootRef}>
@@ -453,8 +482,12 @@ export default function DetailMap(props) {
                                 isOpenLeftMenu ? <ChevronLeftIcon onClick={openLeftMenu} /> : <ChevronRightIcon onClick={openLeftMenu} />
                             }
                         </div>
+                        <div className={classes.conInputSearch}>
+                            <input className={classes.inputSearch} ref={inputSearch}/>
+                            <SearchIcon onClick={onSearchArea}/>
+                        </div>
                         {
-                            listArea.map((item, i) => {
+                            listAreaTmp.map((item, i) => {
                                 return (
                                     <div style={{ display: 'flex', justifyContent: 'center' }}>
                                         <p onClick={() => scrollIntoView(i)} className={`${classes.itemArea} ${areaAct === i ? classes.itemAreaAtc : ''}`}>{item.title}</p>
@@ -526,7 +559,7 @@ export default function DetailMap(props) {
                                         onStart={(e) => handleStart(e, i)}
                                         onDrag={(e) => handleDrag(e, i)}
                                         onStop={(e) => handleStop(e, i)}>
-                                        <circle style={{touchAction: "none"}} cx={+val.split(",")[0]} cy={+val.split(",")[1]} r="5" stroke="red" fill="transparent" />
+                                        <circle style={{ touchAction: "none" }} cx={+val.split(",")[0]} cy={+val.split(",")[1]} r="5" stroke="red" fill="transparent" />
                                     </Draggable>
                                 )
                             })
